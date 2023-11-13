@@ -1,7 +1,5 @@
 import math
 import random
-import statistics as st
-
 
 class State:
     chromosome = None
