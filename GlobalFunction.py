@@ -1,4 +1,3 @@
-#For testing
 import math
 import random
 import statistics as st
