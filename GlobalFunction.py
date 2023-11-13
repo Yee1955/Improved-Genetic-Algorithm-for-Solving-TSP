@@ -91,9 +91,16 @@ def greedy_search(distance, problem_length):
 
     return path
 
-def calculate_index(dataset):
-    w1 = 0.5
-    w2 = 0.5
+def calculate_index(fitness, runtime):
+    # Calculate total seconds
+    total_seconds = runtime.total_seconds()
+
+    normalize_fitness = -fitness
+    normalize_runtime = int(total_seconds)
+
+    try:
+        index = 100000000000000 / ((normalize_fitness) * normalize_runtime)
+    except ZeroDivisionError:
+        index = 0
     
-    #calculating standard deviation of the dataset
-    sd = st.stdev(dataset)
+    return index
