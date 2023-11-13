@@ -1,4 +1,4 @@
-from GlobalFunction import read_distances, read_coordinates, State, calculate_fitness, create_initial_state
+from GlobalFunction import read_distances, read_coordinates, State, calculate_fitness, create_initial_state, calculate_index
 import random
 import operator
 import math
@@ -77,7 +77,7 @@ def select_new_generation(old_population, new_generation):
 def create_initial_population():
     population = []
     while len(population) != k:
-        s = create_initial_state(problem_length)
+        s = create_initial_state(problem_length, distances)
         if s not in population:
             population.append(s)
 
@@ -177,6 +177,22 @@ def swapped_inverted_crossover(parent1, parent2):
 
 # random.randint(1, 101) <= mutation_rate
 
+def schedule(t):
+    a = iterations
+    b = 1
+    return a - t / b
+
+def simulated_annealing(current, current_temperature):
+    T = current_temperature
+
+    mutated = State()
+    mutated.chromosome = apply_mutation(current.chromosome)
+    mutated.fitness = calculate_fitness(distances, mutated.chromosome)
+
+    E = mutated.fitness - current.fitness
+    if E > 0 or random.randint(1, 101) <= math.exp(E / T): current = mutated
+    return current
+
 
 def apply_mutation(chromosome):
     index = random.randint(0, problem_length - 1)
@@ -188,6 +204,7 @@ def apply_mutation(chromosome):
 
 
 def genetic_algorithm():
+    count = 0
     population = create_initial_population()
     for i in population:
         if i.fitness is None:
@@ -205,15 +222,15 @@ def genetic_algorithm():
         while len(new_generation) != k:
             x, y = rank_select_parents(brackets)
             offsprings = crossover(population[x].chromosome, population[y].chromosome)
-
-            for p in offsprings:
-                if random.randint(1, 101) <= mutation_rate: p = apply_mutation(p)
+            
+            T = schedule(i)
 
             for j in offsprings:
                 if len(new_generation) != k:
                     s = State()
                     s.chromosome = j
                     s.fitness = calculate_fitness(distances, s.chromosome)
+                    s = simulated_annealing(s, T) #Apply Mutation
                     if s not in new_generation: new_generation.append(s)
                 else:
                     break
@@ -242,10 +259,11 @@ result, i = genetic_algorithm()
 
 time.ctime()
 end = time.strftime(fmt)
-print("Time taken(sec):", datetime.strptime(end, fmt) - datetime.strptime(start, fmt))
-
+runtime = datetime.strptime(end, fmt) - datetime.strptime(start, fmt)
+print("Time taken(sec):", runtime)
 print('Iterations Taken: ', i)
 print('Fitness of final configuration:', result.fitness)
+print('Index Score:', "%.2f" %calculate_index(result.fitness, runtime))
 print(len(result.chromosome) == len(set(result.chromosome)))
 
 x, y = [], []
