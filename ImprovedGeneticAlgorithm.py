@@ -84,36 +84,95 @@ def create_initial_population():
     return population
 
 
-def partially_mapped_crossover(p1, p2):
-    rand1 = random.randint(2, problem_length - 2)
+def swapped_inverted_crossover(parent1, parent2):
+    # Ensure the parents are of same length
+    assert len(parent1) == len(parent2)
+    
+    #--- Two Points SIC ---
+    # Create Subtour
+    subtour1 = []
+    subtour2 = []
+    rand1 = random.randint(2, len(parent1) - 2)
     rand2 = rand1
-    while rand1 == rand2: rand2 = random.randint(1, problem_length - 2)
+    while rand1 == rand2: rand2 = random.randint(rand1, len(parent1) - 1)
+    for i in range(rand1,rand2 + 1):
+        subtour1.append(parent1[i])
+        subtour2.append(parent2[i])
 
-    o1 = [None] * problem_length
-    o2 = [None] * problem_length
-    for i in range(rand1, rand2 + 1):
-        o1[i] = p2[i]
-        o2[i] = p1[i]
+    # Create Head Part
+    head1 = []
+    head2 = []
+    for i in range(rand1 - 1, - 1, -1):
+        head1.append(parent1[i])
+        head2.append(parent2[i])
 
-    for i in range(rand1):
-        if p1[i] not in o1: o1[i] = p1[i]
-        if p2[i] not in o2: o2[i] = p2[i]
+    # Create Tail Part
+    tail1 = []
+    tail2 = []
+    for i in range(len(parent1) - 1, rand1 + 2, -1):
+        tail1.append(parent1[i])
+        tail2.append(parent2[i])
 
-    for i in range(rand2 + 1, problem_length):
-        if p1[i] not in o1: o1[i] = p1[i]
-        if p2[i] not in o2: o2[i] = p2[i]
+    # Create Remaining Part
+    remain1 = []
+    remain2 = []
+    for i in range(0, len(parent1)):
+        if parent1[i] not in head2 and parent1[i] not in tail2:
+            remain1.append(parent1[i])
+        if parent2[i] not in head1 and parent2[i] not in tail1:
+            remain2.append(parent2[i])
 
-    for i in range(problem_length):
-        if o1[i] is None:
-            new = p1[i]
-            while new in o1: new = p1[p2.index(new)]
-            o1[i] = new
-        if o2[i] is None:
-            new = p2[i]
-            while new in o2: new = p2[p1.index(new)]
-            o2[i] = new
+    o1 = tail2 + remain1 + head2
+    o2 = tail1 + remain2 + head1
 
-    return o1, o2
+    o3 = head2 + remain1 + tail2
+    o4 = head1 + remain2 + tail1
+
+
+
+    #--- One Point SIC ---
+    #Create Cutpoint
+    rand = random.randint(2, len(parent1) - 2)
+
+    # Create Head Part
+    head1 = []
+    head2 = []
+    for i in range(rand, -1, -1):
+        head1.append(parent1[i])
+        head2.append(parent2[i])
+    
+    # Create Tail Part
+    tail1 = []
+    tail2 = []
+    for i in range(len(parent1) - 1, rand1 -1, -1):
+        tail1.append(parent1[i])
+        tail2.append(parent2[i])
+    
+    # Create Remaining Part
+    remain1 = []
+    remain2 = []
+    remain3 = []
+    remain4 = []
+    for i in range(0, len(parent1)):
+        if parent1[i] not in head2: remain1.append(parent1[i])
+        if parent2[i] not in head1: remain2.append(parent2[i])
+        if parent1[i] not in tail2: remain3.append(parent1[i])
+        if parent2[i] not in tail1: remain4.append(parent2[i])
+    
+    o5 = head1 + remain2
+    o6 = remain2 + head1
+
+    o7 = head2 + remain1
+    o8 = remain1 + head2
+
+    o9 = tail1 + remain4
+    o10 = remain4 + tail1
+
+    o11 = tail2 + remain3
+    o12 = remain3 + tail2
+    
+    offsprings = [o1, o2, o3, o4, o5, o6, o7, o8, o9, o10, o11, o12]
+    return offsprings
 
 
 # random.randint(1, 101) <= mutation_rate
@@ -145,46 +204,35 @@ def genetic_algorithm():
         brackets = calculate_brackets(population)
         while len(new_generation) != k:
             x, y = rank_select_parents(brackets)
-            o1, o2 = crossover(population[x].chromosome, population[y].chromosome)
+            offsprings = crossover(population[x].chromosome, population[y].chromosome)
 
-            if random.randint(1, 101) <= mutation_rate: o1 = apply_mutation(o1)
-            if random.randint(1, 101) <= mutation_rate: o2 = apply_mutation(o2)
+            for p in offsprings:
+                if random.randint(1, 101) <= mutation_rate: p = apply_mutation(p)
 
-            s1 = State()
-            s1.chromosome = o1
-            s1.fitness = calculate_fitness(distances, s1.chromosome)
-            s2 = State()
-            s2.chromosome = o2
-            s2.fitness = calculate_fitness(distances, s2.chromosome)
-            if len(new_generation) + 1 < k:
-                if s1 not in new_generation: new_generation.append(s1)
-                if s2 not in new_generation: new_generation.append(s2)
-            else:
-                if s1.fitness < s2.fitness and s2 not in new_generation: new_generation.append(s2)
-                elif s1 not in new_generation: new_generation.append(s1)
+            for j in offsprings:
+                if len(new_generation) != k:
+                    s = State()
+                    s.chromosome = j
+                    s.fitness = calculate_fitness(distances, s.chromosome)
+                    if s not in new_generation: new_generation.append(s)
+                else:
+                    break
 
         population = select_new_generation(population, new_generation)
 
     return population[0], iterations - i
 
-
-# p1 = [0, 1, 2, 3, 4, 5, 6, 7]
-# p2 = [7, 4, 1, 0, 2, 5, 3, 6]
-# r = cycle_crossover(p1, p2)
-# for i in range(len(r[0])):
-#     r[0][i] = r[0][i] + 1
-#     r[1][i] = r[1][i] + 1
-k = int(input('k: '))
-mutation_rate = float(input('Mutation Rate: '))
-iterations = int(input('Maximum number of iterations: '))
-fitness = float(input('Minimum value of fitness: '))
-file = input('Input Files Prefix: ')
+k = 100
+mutation_rate = 3
+iterations = 1000
+fitness = -1000
+file = "usca312"
 
 distances = read_distances(file)
 coordinates = read_coordinates(file)
 problem_length = len(coordinates)
 calculate_brackets = calculate_rank_brackets
-crossover = partially_mapped_crossover
+crossover = swapped_inverted_crossover
 
 time.ctime()
 fmt = '%H:%M:%S'
@@ -206,26 +254,3 @@ for i in range(problem_length):
     y.append(coordinates[result.chromosome[i]][1])
 plt.plot(x, y, marker='o')
 plt.show()
-
-
-def cycle_crossover1(p1, p2):
-    o = [-1] * problem_length
-
-    o[0] = p1[0]
-    index = 0
-    while -1 in o:
-        index = p2[index]
-        found = p1[index]
-        if found not in o:
-            o[index] = found
-        else: break
-
-    for i in range(problem_length):
-        if o[i] == -1:
-            o[i] = p2[i]
-
-    return o
-
-
-def cycle_crossover(p1, p2):
-    return cycle_crossover1(p1, p2), cycle_crossover1(p2, p1)
