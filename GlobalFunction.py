@@ -99,7 +99,7 @@ def calculate_index(fitness, runtime):
     normalize_runtime = int(total_seconds)
 
     try:
-        index = 100000000000000 / ((normalize_fitness) * normalize_runtime)
+        index = 10000000 / ((normalize_fitness) * normalize_runtime)
     except ZeroDivisionError:
         index = 0
     
